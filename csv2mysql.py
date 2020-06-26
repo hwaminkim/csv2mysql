@@ -15,6 +15,7 @@ import logging
 import yaml
 from MySQLdb import connect
 from MySQLdb.connections import Connection
+from MySQLdb.cursors import Cursor
 
 
 FORMATTER = ('%(asctime)s : %(levelname)-8s : %(process)6d : '
@@ -141,25 +142,22 @@ def read_schema(path: Path) -> list:
 
 
 
-def store_data(conn: Connection, config: dict, table: str, csv_file: Path):
+def store_data(cur: Cursor, config: dict, table: str, csv_file: Path):
     """Store data."""
-    # Create DB
+    LOGGER.debug('Create Database if not exist')
     database = config['mysql']['database']
-    cur = conn.cursor()
     cur.execute(f"CREATE DATABASE IF NOT EXISTS {database}")
     cur.execute(f"USE {database}")
 
-    # Read csv file and scheme
     schema = read_schema(csv_file)
 
-    # Create Table if not exist
+    LOGGER.debug('Create Table if not exist')
     types = ', '.join([f'{name} {type}' for name, type in schema])
     query_create_table = f"CREATE TABLE IF NOT EXISTS {table} ({types})"
     LOGGER.debug('Query> %s', query_create_table)
     cur.execute(query_create_table)
 
-    # Store data
-    LOGGER.debug('Start to store data from %r', csv_file)
+    LOGGER.debug('Store data from %r', csv_file)
     query_store_data = (
         f"LOAD DATA LOCAL INFILE '{str(csv_file)}' INTO TABLE {table} FIELDS "
         f"TERMINATED BY ',' ENCLOSED BY '\"' LINES TERMINATED BY '\\n' "
@@ -172,13 +170,18 @@ def store_data(conn: Connection, config: dict, table: str, csv_file: Path):
 
 def main():
     """Main Routine."""
+    # Arg Parse
     args = read_args()
 
     # Read config
     config = read_config(args.config)
 
+    # Store on DB
     conn = connect_database(config['mysql'])
-    store_data(conn, config, args.table, Path(args.csv_file))
+    cur = conn.cursor()
+    store_data(cur, config, args.table, Path(args.csv_file))
+    conn.commit()
+    cur.close()
     conn.close()
 
 
