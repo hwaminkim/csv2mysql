@@ -26,6 +26,10 @@ LOGGER = logging.getLogger(__name__)
 DIR = Path(__file__).parent.resolve()
 
 
+class Csv2MysqlError(Exception):
+    """Base Exception for this script."""
+
+
 def read_config(path: Path) -> dict:
     """Read .yaml config file."""
     LOGGER.debug('Read config file: %r', path)
@@ -151,11 +155,15 @@ def store_data(cur: Cursor, config: dict, table: str, csv_file: Path):
 
     schema = read_schema(csv_file)
 
-    LOGGER.debug('Create Table if not exist')
     types = ', '.join([f'{name} {type}' for name, type in schema])
     query_create_table = f"CREATE TABLE IF NOT EXISTS {table} ({types})"
     LOGGER.debug('Query> %s', query_create_table)
     cur.execute(query_create_table)
+
+    LOGGER.debug('Check whether table %r is empty', table)
+    cur.execute(f'SELECT COUNT(*) FROM {table}')
+    if data := cur.fetchall()[0][0]:
+        raise Csv2MysqlError(f'Table {table} is already having {data} rows')
 
     LOGGER.debug('Store data from %r', csv_file)
     query_store_data = (
