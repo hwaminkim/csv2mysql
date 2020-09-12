@@ -4,12 +4,12 @@ csv2mysql
 
 Read csv file and store data on mySQL Database
 """
-from ast import literal_eval
-import datetime
 from argparse import ArgumentParser
 from argparse import Namespace
-import csv
+from ast import literal_eval
 from pathlib import Path
+import csv
+import datetime
 import logging
 
 import yaml
