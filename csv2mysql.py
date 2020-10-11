@@ -59,15 +59,20 @@ def read_args() -> Namespace:
     parser.add_argument(
         '--clean-table', action='store_true',
         help="Configuration file for model.")
+    parser.add_argument(
+        '--local-infile', action='store_true',
+        help=("Add option for local-infile, this can be used for MySQLdb."
+              "_exceptions.OperationalError error."))
     res = parser.parse_args()
     LOGGER.info('Argument passed: %r', res)
     return res
 
 
-def connect_database(config: dict) -> Connection:
+def connect_database(config: dict, local_infile=False) -> Connection:
     """Connect database."""
     return connect(host=config['host'], port=config['port'],
-                   user=config['user'], passwd=config['password'])
+                   user=config['user'], passwd=config['password'],
+                   local_infile=local_infile)
 
 
 def is_date(date_text: str) -> bool:
@@ -185,7 +190,7 @@ def main():
     config = read_config(args.config)
 
     # Store on DB
-    conn = connect_database(config['mysql'])
+    conn = connect_database(config['mysql'], args.local_infile)
     cur = conn.cursor()
     store_data(cur, config, args.table, Path(args.csv_file))
     conn.commit()
