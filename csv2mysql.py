@@ -150,7 +150,6 @@ def read_schema(path: Path) -> list:
     return res
 
 
-
 def store_data(cur: Cursor, config: dict, table: str, csv_file: Path):
     """Store data."""
     LOGGER.debug('Create Database if not exist')
